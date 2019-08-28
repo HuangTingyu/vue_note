@@ -136,3 +136,7 @@ document.getElementById('btn-change'), addEventListener('click', function() {
 })
 ```
 
+#### vdom重写需求
+
+详见snabbdom_demo1目录
+
