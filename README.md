@@ -140,3 +140,109 @@ document.getElementById('btn-change'), addEventListener('click', function() {
 
 详见snabbdom_demo1目录
 
+```js
+h('<标签名>', { 属性 }, [{ 子元素1 }, { 子元素2 }, ...])
+h('<标签名>', { 属性 }, '子元素')
+patch(container,vnode)
+patch(vnode,newVnode)
+```
+
+### diff算法
+
+diff算法核心应用，把vdom转换为真实dom节点。
+
+核心应用——
+
+1. patch(container,vnode)
+2. patch(vnode,newVnode)
+
+#### 1.vnode生成新dom节点
+
+详细参考vdom_diff目录下的 `createElement.js`
+
+`createElemnt` 产生真实dom节点主要实现——
+
+```js
+function createElement(vnode) {
+	// 创建真实的dom元素
+	var elem = document.createElement(tag)
+	// 返回真实dom元素
+	return elem
+}
+```
+
+添加属性——遍历attrs对象
+
+添加子元素——遍历children数组，递归调用createElement
+
+```js
+function createElement(vnode) {
+  	......
+	// 属性
+    var attrName
+    for (attrName in attrs) {
+        if (attrs.hasOwnProperty(attrName)) {
+            // 给elem添加属性
+            elem.setAttribute(attrName, attrs[attrName])
+        }
+    }
+    // 子元素
+    children.forEach(function(childVnode) {
+        // 给elem添加子元素
+        elem.appendChild(createElement(childVnode)) //递归
+
+    })
+}
+```
+
+#### 2.vnode对比修改dom节点
+
+详细参考vdom_diff目录下的 `updateElement.js`
+
+1.对于tag相同的节点——
+
+递归对比，新子节点，旧子节点
+
+```js
+function updateChildren(vnode, newVnode) {
+	children.forEach(function(childVnode, index) {
+        var newChildVnode = newChildren[index]
+        if (childVnode.tag === newChildVnode.tag) {
+            // 深层次对比，递归
+            updateChildren(childVnode, newChildVnode)
+        } 
+      ...
+    })
+}
+```
+
+2.对于tag不同的节点——
+
+```js
+function updateChildren(vnode, newVnode) {
+  if{
+    ...
+  }
+  else {
+     // 替换
+     replaceNode(childVnode, newChildVnode)
+   }
+}
+function replaceNode(vnode, newVnode) {
+    var elem = vnode.elem // 真实的dom节点
+    var newElem = createElement(newVnode)
+
+    //替换
+}
+```
+
+3.除了上述两个点以外，没有涉及的点——
+
+- 节点新增和删除
+- 节点重新排序
+- 节点属性、样式、事件绑定
+- 极致的压榨性能
+
+4.总结
+
+diff算法，linux的基础命令
