@@ -29,7 +29,15 @@ Vue.js的源码都在src目录下，目录如下——
 - src/sfc(.vue文件解析)
 - src/shared(共享代码)
 
-### 调试源码技巧汇总
+## 测试目录(vue-test)
+
+启动项目 
+
+```
+npm run serve
+```
+
+## 调试源码技巧汇总
 
 先用 `vue-cli` 搭建好项目环境，找到项目里面的 `node_modules\vue` 
 
