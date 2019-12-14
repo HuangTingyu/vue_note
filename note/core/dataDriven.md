@@ -140,3 +140,29 @@ updateComponent = () => {
 
 此后无论视图更新，还是什么，都走 `vm._update`
 
+#### 问题3：`render` 函数是做什么的？
+
+#### 应用
+
+在vue项目的 `main.js` 写入
+
+```js
+import Vue from 'vue'
+new Vue({
+  el:'#app',
+  render(createElement){
+    return createElement('div',{
+      attrs:{
+        id:'#app1'
+      }
+    },this.message)
+  },
+  data(){
+    return {
+      message : 'bacra'
+    }
+  }
+})
+```
+
+页面上出现 `bacra`
