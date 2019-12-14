@@ -27,14 +27,18 @@ module.exports = {
             // "defaultParams": true
         }
     },
+    "extends": [
+        "plugin:vue/essential",
+        "eslint:recommended"
+     ],
     // 启用的规则及各自的错误级别
     "rules" : {
         // 禁止用console
-        "no-console":1,
+        "no-console":"off",
         // 禁止用分号
-        "semi":[2,'never'],
+        // "semi":[2,'never'],
         // 在同一个作用域中禁止多次重复定义
-        "no-redeclare":1
+        // "no-redeclare":1
     },
     // 指定你想启用的环境
     "env": {

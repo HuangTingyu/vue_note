@@ -12,6 +12,15 @@ export default {
   name: 'app',
   components: {
     HelloWorld
+  },
+  mounted(){
+    console.log(this.message)
+    console.log(this._data.message)
+  },
+  data:function() {
+    return {
+      message:'bacra'
+    };
   }
 }
 </script>
