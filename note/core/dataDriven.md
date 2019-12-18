@@ -142,6 +142,10 @@ updateComponent = () => {
 
 #### 问题3：`render` 函数是做什么的？
 
+#### 简要回答
+
+把实例渲染成一个虚拟Node
+
 #### 应用
 
 在vue项目的 `main.js` 写入
@@ -166,3 +170,100 @@ new Vue({
 ```
 
 页面上出现 `bacra`
+
+上面的代码相当于
+
+```html
+<div id="app1">
+	｛｛message｝｝
+</div>
+```
+
+#### 详细逻辑
+
+render函数可以用户自己写，也可以通过编译生成。
+
+主要逻辑见 `node_modules\vue\src\core\instance\render.js` ，此处可见 `render` 最后返回是 `VNode`
+
+```
+Vue.prototype._render = function (): VNode 
+```
+
+vnode的生成，主要参见下面，
+
+```
+vnode = render.call(vm._renderProxy, vm.$createElement)
+```
+
+(1)此处的 `vm._renderProxy` ，如果是生产环境(`process.env.NODE_ENV === 'production'`)，`vm._renderProxy` 指的就是 `vm` 。
+
+```
+if (process.env.NODE_ENV !== 'production') {
+      initProxy(vm)
+    } else {
+      vm._renderProxy = vm
+    }
+```
+
+如果是开发环境，那就走 `initProxy(vm)` ，这个函数主要是做一些检查，例如
+
+```js
+const hasHandler = {
+    has (target, key) {
+      const has = key in target
+      const isAllowed = allowedGlobals(key) ||
+        (typeof key === 'string' && key.charAt(0) === '_' && !(key in target.$data))
+      if (!has && !isAllowed) {
+        if (key in target.$data) warnReservedPrefix(target, key)
+        else warnNonPresent(target, key)
+      }
+      return has || !isAllowed
+    }
+  }
+```
+
+这里面做了一个遍历，如果我们在 `template` 里面使用了未定义的变量，就会执行 `warnNonPresent` ，也就是会报下面的错误，主要就是说 `xxx` 没有定义。
+
+```js
+const warnNonPresent = (target, key) => {
+    warn(
+      `Property or method "${key}" is not defined on the instance but ` +
+      'referenced during render. Make sure that this property is reactive, ' +
+      'either in the data option, or for class-based components, by ' +
+      'initializing the property. ' +
+      'See: https://vuejs.org/v2/guide/reactivity.html#Declaring-Reactive-Properties.',
+      target
+    )
+  }
+```
+
+(2)`$createElement` ，详细见 `render.js` 里面的 `initRender` 函数
+
+```js
+ vm._c = (a, b, c, d) => createElement(vm, a, b, c, d, false)
+ vm.$createElement = (a, b, c, d) => createElement(vm, a, b, c, d, true)
+```
+
+这个，`_c` 是被编译的 `render` 函数使用的方法，而 `$createElemen` 是手写render函数使用的。
+
+(3)检查，只能存在一个vnode，如果存在多个vnode，就会报错 `Multiple root nodes .......`
+
+```js
+ if (!(vnode instanceof VNode)) {
+      if (process.env.NODE_ENV !== 'production' && Array.isArray(vnode)) {
+        warn(
+          'Multiple root nodes returned from render function. Render function ' +
+          'should return a single root node.',
+          vm
+        )
+      }
+      vnode = createEmptyVNode()
+    }
+    // set parent
+    vnode.parent = _parentVnode
+    return vnod
+```
+
+
+
+#### 问题4：`virtual dom` 是什么？
