@@ -26,9 +26,9 @@ if (vm.$options.el) {
     }
 ```
 
-### 初始化的过程
+### 问题1
 
-#### 问题1：访问data里的数据是如何实现的？
+### 访问data里的数据是如何实现的？
 
 为什么mouted里面，可以通过 `this.message` 访问到 `data`中定义的`message` 。
 
@@ -83,7 +83,9 @@ proxy(vm, `_data`, key)
 
 再通过 `Object.defineProperty` 做一层转换，也就是在我们访问 `this.message` 的时候，返回 `this._data.message`
 
-#### 问题2：执行mount方法发生了哪些事情？
+### 问题2
+
+### 执行mount方法发生了哪些事情？
 
 #### 简要总结
 
@@ -142,11 +144,13 @@ updateComponent = () => {
 
 此后无论视图更新，还是什么，都走 `vm._update`
 
-#### 问题3：`render` 函数是做什么的？
+### 问题3
+
+### `render` 函数是做什么的？
 
 #### 简要回答
 
-主要作用是，把实例渲染成一个虚拟Node并返回
+主要作用是，把实例渲染成一个`vnode`并返回
 
 #### 出处
 
@@ -276,7 +280,9 @@ const warnNonPresent = (target, key) => {
     return vnod
 ```
 
-#### 问题4：`vnode` 是什么？
+### 问题4
+
+### `vnode` 是什么？
 
 #### 简要解答
 
@@ -316,7 +322,9 @@ declare interface VNodeData {
 
 `vue` 里面的虚拟 `dom` 主要借鉴了`snabbdom`
 
-#### 问题5：`createElement` 都做了什么？
+### 问题5
+
+### `createElement` 都做了什么？
 
 #### 简要解答
 
