@@ -49,3 +49,13 @@ npm run serve
 
 然后项目启动以后，直接进 `node_modules\vue\dist\vue.runtime.esm.js`  加入`debugger` 就完事。
 
+## 笔记目录
+
+`flow` —— 介绍 `flow` 的基本用法
+
+`commom_JS_operation.md` —— 介绍阅读源码过程中，常用的JS操作
+
+`core/dataDriven` —— 介绍`vue` 数据驱动的基本原理
+
+
+
