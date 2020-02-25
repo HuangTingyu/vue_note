@@ -1,3 +1,7 @@
+Vue将数据渲染成dom的全过程 ——
+
+![avatar](../images/dataDriven.png)
+
 ## 数据驱动
 
 应用举例
@@ -469,5 +473,215 @@ else if ((!data || !data.pre) && isDef(Ctor = resolveAsset(context.$options, 'co
 
 3.不认识的节点
 
+### 问题6
 
+### `update` 过程做了什么？
+
+#### 简要回答
+
+`_update` 是实例的一个私有方法，它被调用的时机有2个，一个首次渲染，一个是数据更新的时候。`_update` 方法的作用，把VNode渲染成真实的DOM。
+
+#### 具体分析
+
+`vue-dev\src\core\instance\lifecycle.js`
+
+update 核心 `vm.__patch__` 方法
+
+```js
+ if (!prevVnode) {
+      // initial render
+      vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */)
+    } else {
+      // updates
+      vm.$el = vm.__patch__(prevVnode, vnode)
+    }
+```
+
+patch方法的定义 `src\platforms\web\runtime\index.js`
+
+```
+Vue.prototype.__patch__ = inBrowser ? patch : noop
+```
+
+inBrowser判断是不是浏览器端，浏览器端走patch函数；如果不是浏览器端，就是服务端，则走的是一个空函数。这里加这个判断，是因为vnode在服务端和浏览器端生成真实dom的方法是不同的。
+
+patch方法返回的是一个函数，传入的nodeOps封装了一系列DOM操作方法，modules定义了一些模块的钩子函数的实现。这里用了一个叫 `函数柯里化` 的技巧，把差异化的参数提前固化。这样的好处是，下面调用`patch` 方法时，不用再传入`nodeOps` 和 `modules` 。
+
+关于函数柯里化 —— <https://www.jianshu.com/p/2975c25e4d71>
+
+```
+export const patch: Function = createPatchFunction({ nodeOps, modules })
+```
+
+`createPatchFunction` 的定义在 `src\core\vdom\patch.js`
+
+```
+for (i = 0; i < hooks.length; ++i) {
+    cbs[hooks[i]] = []
+    for (j = 0; j < modules.length; ++j) {
+      if (isDef(modules[j][hooks[i]])) {
+        cbs[hooks[i]].push(modules[j][hooks[i]])
+      }
+    }
+  }
+```
+
+此处的hooks代表钩子，modules定义了一些钩子函数，上面代码就是执行了hooks中各个钩子对应的钩子函数。各种钩子函数的定义在 `src\core\vdom\modules` 目录下面。
+
+```
+const hooks = ['create', 'activate', 'update', 'remove', 'destroy']
+```
+
+除此之外，`createPatchFunction` 还定义了许多辅助函数，最后返回了
+
+```
+return function patch (oldVnode, vnode, hydrating, removeOnly)
+```
+
+因此，`vm.__patch__ ` 的本体就是这里的patch函数。
+
+下面讲讲这个 `patch` 函数 ——
+
+参数解析：`oldVnode` 真实dom，vnode，以及hydrating这是一个bool值，开启服务端渲染的时候为true。
+
+oldNode存在，且非SSR的状态下有:
+
+1.把oldVnode转化为Vnode
+
+```
+oldVnode = emptyNodeAt(oldVnode)
+```
+
+2.把vnode(参数传入)挂载到真实dom上
+
+```
+createElm(
+          vnode,
+          insertedVnodeQueue,
+          // extremely rare edge case: do not insert if old element is in a
+          // leaving transition. Only happens when combining transition +
+          // keep-alive + HOCs. (#4590)
+          oldElm._leaveCb ? null : parentElm,
+          nodeOps.nextSibling(oldElm)
+        )
+```
+
+关于`createElm` 
+
+2.1判断有没有namespace，然后使用 `document.createElement` 创建dom
+
+```
+vnode.elm = vnode.ns
+        ? nodeOps.createElementNS(vnode.ns, tag)
+        : nodeOps.createElement(tag, vnode)
+      setScope(vnode)
+```
+
+2.2 假如没有ns，使用createElement创建子节点的情况如下
+
+```
+createChildren(vnode, children, insertedVnodeQueue)
+```
+
+```
+function createChildren (vnode, children, insertedVnodeQueue) {
+    if (Array.isArray(children)) {
+      if (process.env.NODE_ENV !== 'production') {
+        checkDuplicateKeys(children)
+      }
+      for (let i = 0; i < children.length; ++i) {
+        createElm(children[i], insertedVnodeQueue, vnode.elm, null, true, children, i)
+      }
+    } else if (isPrimitive(vnode.text)) {
+      nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(String(vnode.text)))
+    }
+  }
+```
+
+createChildren创建子节点的原理：
+
+遍历子节点数组，递归调用 `createElm` 创建子节点并插入到刚刚创建的 `vnode.elm` 中。
+
+2.3 插入父节点
+
+使用 `insert` 方法将创建好的节点插入到页面中。
+
+```
+insert(parentElm, vnode.elm, refElm)
+```
+
+insert传入参数解析 ——
+
+此处的`parentElm` ，就是oldVnode的父节点。
+
+```
+const parentElm = nodeOps.parentNode(oldElm)
+```
+
+举个例子，如果是下面这种结构，那么此处的oldElm就是`<div id="app"></div>`，parentElm就是body标签。
+
+`index.html`
+
+```
+<body>
+  <div id="app"></div>
+</body>
+```
+
+`main.js`
+
+```
+new Vue({
+  el:'#app',
+  render(createElement){
+    return createElement('div',{
+      attrs:{
+        id:'#app1'
+      }
+    },this.message)
+  },
+  data(){
+    return {
+      message : 'bacra'
+    }
+  }
+})
+```
+
+insert插入原理，dom节点的insertBefore方法或者appendChild插入。
+
+```
+function insert (parent, elm, ref) {
+    if (isDef(parent)) {
+      if (isDef(ref)) {
+        if (nodeOps.parentNode(ref) === parent) {
+          nodeOps.insertBefore(parent, elm, ref)
+        }
+      } else {
+        nodeOps.appendChild(parent, elm)
+      }
+    }
+  }
+```
+
+nodeOps.insertBefore相当于
+
+```
+parentNode.insertBefore(newNode, referenceNode)
+```
+
+#### 报错
+
+组件没有注册的时候，将报错
+
+`src\core\vdom\patch.js`
+
+```
+warn(
+            'Unknown custom element: <' + tag + '> - did you ' +
+            'register the component correctly? For recursive components, ' +
+            'make sure to provide the "name" option.',
+            vnode.context
+          )
+```
 
