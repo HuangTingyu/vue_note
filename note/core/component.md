@@ -237,7 +237,7 @@ const componentVNodeHooks = {
   )
 ```
 
-#### 结论
+## 末尾: 结论
 
 组件VNode，包含属性 `componentOptions`
 
@@ -245,5 +245,87 @@ const componentVNodeHooks = {
 
 ```
 { Ctor, propsData, listeners, tag, children }
+```
+
+## 2.组件patch
+
+- 组件patch整体流程
+- pathch流程中的 activeInstance、vm.$vnode、vm._vnode等
+- 了解嵌套组件的插入顺序
+
+### part1
+
+以下看的都是，跟keep-alive无关的逻辑
+
+`src\core\vdom\patch.js`
+
+```js
+function createComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
+    let i = vnode.data
+    if (isDef(i)) {
+      ......
+      if (isDef(i = i.hook) && isDef(i = i.init)) {
+        i(vnode, false /* hydrating */)
+        ......
+      }
+```
+
+存在init方法，进入
+
+`src\core\vdom\create-component.js`
+
+```js
+const componentVNodeHooks = {
+  init (vnode: VNodeWithData, hydrating: boolean): ?boolean {
+  ......
+  else {
+      const child = vnode.componentInstance = createComponentInstanceForVnode(
+        vnode,
+        activeInstance
+      )
+      child.$mount(hydrating ? vnode.elm : undefined, hydrating)
+    }
+```
+
+`src\core\vdom\create-component.js`
+
+```js
+export function createComponentInstanceForVnode (
+  vnode: any, // we know it's MountedComponentVNode but flow doesn't
+  parent: any, // activeInstance in lifecycle state
+): Component {
+  const options: InternalComponentOptions = {
+    _isComponent: true,
+    _parentVnode: vnode,
+    parent
+  }
+  ......
+  return new vnode.componentOptions.Ctor(options)
+}
+```
+
+以上的 `vnode.componentOptions.Ctor(options)` , 详细可以参见上面关于createComponent的分析，简单来说，Ctor是一个构造器，
+
+根据 `src\core\vdom\create-component.js`
+
+```
+Ctor = baseCtor.extend(Ctor)
+```
+
+`src\core\global-api\extend.js` 返回了Sub函数，也就是说，Ctor相当于Sub函数。
+
+```
+Vue.extend = function (extendOptions: Object): Function {
+	.......
+	return Sub
+}
+```
+
+Sub函数调用的时候，会触发 `_init` 函数。
+
+```
+const Sub = function VueComponent (options) {
+      this._init(options)
+    }
 ```
 
