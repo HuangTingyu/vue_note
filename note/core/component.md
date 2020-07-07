@@ -253,9 +253,9 @@ const componentVNodeHooks = {
 - pathch流程中的 activeInstance、vm.$vnode、vm._vnode等
 - 了解嵌套组件的插入顺序
 
-### part1
+### part1 关联Vue init
 
-以下看的都是，跟keep-alive无关的逻辑
+以下看的，都是跟keep-alive无关的逻辑
 
 `src\core\vdom\patch.js`
 
@@ -327,5 +327,19 @@ Sub函数调用的时候，会触发 `_init` 函数。
 const Sub = function VueComponent (options) {
       this._init(options)
     }
+```
+
+### part2 
+
+`src\core\instance\init.js`
+
+```js
+......
+if (options && options._isComponent) {
+      // optimize internal component instantiation
+      // since dynamic options merging is pretty slow, and none of the
+      // internal component options needs special treatment.
+      initInternalComponent(vm, options)
+    } 
 ```
 
