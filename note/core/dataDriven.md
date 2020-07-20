@@ -183,13 +183,13 @@ new Vue({
   },
   data(){
     return {
-      message : 'bacra'
+      message : 'Dilraba'
     }
   }
 })
 ```
 
-页面上出现 `bacra`
+页面上出现 `Dilraba`
 
 上面的代码相当于
 

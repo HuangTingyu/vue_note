@@ -343,3 +343,44 @@ if (options && options._isComponent) {
     } 
 ```
 
+`initInternalComponent` 定义在 `src\core\instance\init.js` ，作用是合并一些配置项。
+
+接着是
+
+```
+initLifecycle(vm)
+```
+
+` src\core\instance\lifecycle.js `
+
+```
+let parent = options.parent
+```
+
+这里的 `options.parent` 是 `activeInstance`
+
+`activeInstance` 定义在 ` src\core\instance\lifecycle.js ` 全局，在update的时候被赋值的
+
+```js
+export function lifecycleMixin (Vue: Class<Component>) {
+  Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
+    const vm: Component = this
+    const prevEl = vm.$el
+    const prevVnode = vm._vnode
+    const restoreActiveInstance = setActiveInstance(vm)
+    ......
+```
+
+`setActiveInstance` 的定义
+
+```js
+export function setActiveInstance(vm: Component) {
+  const prevActiveInstance = activeInstance
+  activeInstance = vm
+  return () => {
+    activeInstance = prevActiveInstance
+  }
+}
+```
+
+简要概括，1.把当前vue实例赋值给 `activeInstance` 2. 把父组件赋值给 `prevActiveInstance`
