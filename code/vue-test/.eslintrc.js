@@ -35,6 +35,7 @@ module.exports = {
     "rules" : {
         // 禁止用console
         "no-console":"off",
+        'no-debugger': process.env.NODE_ENV === 'production' ? 2 : 0
         // 禁止用分号
         // "semi":[2,'never'],
         // 在同一个作用域中禁止多次重复定义
