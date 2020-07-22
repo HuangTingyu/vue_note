@@ -5,7 +5,7 @@
 
 ### 调试代码
 
-`main.js`
+`main.js` 文件改成下面这样
 
 ```js
 import Vue from 'vue/dist/vue.esm.js'
@@ -51,4 +51,24 @@ export function initMixin (Vue: GlobalAPI) {
   }
 }
 ```
+
+### 分析
+
+`src\core\instance\init.js`
+
+```js
+export function initMixin (Vue: Class<Component>) {
+	......
+	if (options && options._isComponent) {
+      ......
+    } else {
+      vm.$options = mergeOptions(
+        resolveConstructorOptions(vm.constructor),
+        options || {},
+        vm
+      )
+    }
+```
+
+`mergeOptions` 定义在 
 
