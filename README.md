@@ -1,6 +1,6 @@
 ## 测试文件
 
-`node_modules\vue\dist\vue.runtime.esm.js`
+`node_modules\vue\dist\vue.esm.js`
 
 ## 知识结构
 
@@ -40,8 +40,6 @@ Vue.js的源码都在src目录下，目录如下——
 ```
 npm run serve
 ```
-
-
 
 ## 调试源码技巧汇总
 

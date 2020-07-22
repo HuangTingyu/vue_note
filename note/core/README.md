@@ -6,6 +6,8 @@ Vue将数据渲染成dom的全过程 ——
 
 应用举例
 
+`main.js`
+
 ```
 import Vue from 'vue'
 

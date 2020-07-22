@@ -14,7 +14,6 @@ export default {
     HelloWorld
   },
   mounted(){
-    debugger
     console.log(this.message)
     console.log(this._data.message)
   },

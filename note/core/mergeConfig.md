@@ -1,5 +1,14 @@
+## 合并配置
+
+- 了解外部调用场景的配置合并
+- 了解组件场景的配置合并
+
+### 调试代码
+
+`main.js`
+
+```js
 import Vue from 'vue/dist/vue.esm.js'
-// import App from './App.vue'
 
 Vue.config.productionTip = false
 
@@ -24,28 +33,22 @@ Vue.mixin({
   }
 })
 
-// 引入APP组件
-// new Vue({
-//   render: h => h(App),
-// }).$mount('#app')
-
 new Vue ({
   el:'#app', 
   render: h => h(childComp)
 })
+```
 
-// new Vue({
-//   el:'#app',
-//   render(createElement){
-//     return createElement('div',{
-//       attrs:{
-//         id:'#app1'
-//       }
-//     },this.message)
-//   },
-//   data(){
-//     return {
-//       message : 'bacra'
-//     }
-//   }
-// })
+### `mixin`
+
+`vue\src\core\global-api\mixin.js`
+
+```js
+export function initMixin (Vue: GlobalAPI) {
+  Vue.mixin = function (mixin: Object) {
+    this.options = mergeOptions(this.options, mixin)
+    return this
+  }
+}
+```
+
