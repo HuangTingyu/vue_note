@@ -2,7 +2,11 @@
 
 ## 1. createComponent
 
-定义
+### 总结
+
+createComponent方法最后将返回一个VNode
+
+### 详细分析
 
 `src\core\vdom\create-component.js`
 
@@ -224,6 +228,8 @@ const componentVNodeHooks = {
 
 ### part4 组件VNode
 
+最后 `createComponent` 方法将返回一个VNode
+
 `src\core\vdom\create-component.js`
 
 ```js
@@ -235,16 +241,8 @@ const componentVNodeHooks = {
     { Ctor, propsData, listeners, tag, children },
     asyncFactory
   )
-```
-
-## 末尾: 结论
-
-组件VNode，包含属性 `componentOptions`
-
-`componentOptions` 相当于
-
-```
-{ Ctor, propsData, listeners, tag, children }
+  .......
+  return vnode
 ```
 
 ## 2.组件patch
