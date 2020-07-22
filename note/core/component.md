@@ -253,6 +253,63 @@ const componentVNodeHooks = {
 - pathch流程中的 activeInstance、vm.$vnode、vm._vnode等
 - 了解嵌套组件的插入顺序
 
+### 总结
+
+1. patch 的整体流程
+
+   createComponent -> 组件初始化 -> 组件render -> 组件patch -> createComponet -> (循环开始，直到子组件全部render完，变成VNode)
+
+2. activeInstance 保存当前激活的vm实例（new Vue 返回的对象）；
+
+   vm.$vnode为组件占位符VNode（也就是下一个流程将被渲染的子组件，除了$options中记录了父组件，其他属性都为undefined）; 
+
+   vm._vnode为当前组件的渲染VNode；
+
+3. 渲染的时候，是最外一层组件先渲染，直到最深的一层组件渲染完，再执行插入操作。
+4. 插入的时候，是嵌套最深的一层子组件渲染完，插入上一层组件中，再插入上上层，插入到body中。
+
+### 详细分析
+
+首先从 `patch` 方法开始的地方
+
+`src\core\vdom\patch.js`
+
+```js
+return function patch (oldVnode, vnode, hydrating, removeOnly) {
+    if (isUndef(vnode)) {
+      if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
+      return
+    }
+
+    let isInitialPatch = false
+    const insertedVnodeQueue = []
+
+    if (isUndef(oldVnode)) {
+      ......
+    } else {
+        ......
+        // create new node
+        createElm(
+          vnode,
+          insertedVnodeQueue,
+          // extremely rare edge case: do not insert if old element is in a
+          // leaving transition. Only happens when combining transition +
+          // keep-alive + HOCs. (#4590)
+          oldElm._leaveCb ? null : parentElm,
+          nodeOps.nextSibling(oldElm)
+        )
+```
+
+进入 `createElm` 方法，
+
+```
+if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
+      return
+    }
+```
+
+触发 `createComponent` 方法。
+
 ### part1 关联Vue的init流程
 
 以下看的，都是跟keep-alive无关的逻辑
