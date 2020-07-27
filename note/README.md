@@ -11,3 +11,5 @@
 `component.md` —— `Vue` 组件渲染过程
 
 `mergeConfig.md` —— 配置合并
+
+`LifeCycle.md` —— 生命周期

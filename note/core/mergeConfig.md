@@ -39,7 +39,102 @@ new Vue ({
 })
 ```
 
+### 简要总结
+
+上面 `console` 的执行顺序
+
+```
+parent created
+child created
+child mounted
+```
+
+1. 直接调用 `Vue.mixin` 会直接走到 `mergeOptions` 的逻辑，遵循一定的合并策略（即不可以乱传配置进去）
+2. 组件间的配置合并，是通过 `initInternalComponent` ，合并更快
+3. 其他框架的设计也是类似的，自身定义了默认配置，同时可以在初始化的时候传入配置，来满足不同的定制化要求
+
 ### 详细分析
+
+`options` 的定义
+
+`src\core\instance\init.js`
+
+```js
+if (options && options._isComponent) {
+      // optimize internal component instantiation
+      // since dynamic options merging is pretty slow, and none of the
+      // internal component options needs special treatment.
+      initInternalComponent(vm, options)
+    } else {
+      vm.$options = mergeOptions(
+        resolveConstructorOptions(vm.constructor),
+        options || {},
+        vm
+      )
+    }
+```
+
+### 组件初始化
+
+`src\core\instance\init.js`
+
+```js
+if (options && options._isComponent) {
+      // optimize internal component instantiation
+      // since dynamic options merging is pretty slow, and none of the
+      // internal component options needs special treatment.
+      initInternalComponent(vm, options)
+    }  else {
+      ......
+    }
+```
+
+`initInternalComponent` 的定义
+
+```js
+export function initInternalComponent (vm: Component, options: InternalComponentOptions) {
+  const opts = vm.$options = Object.create(vm.constructor.options)
+  ......
+```
+
+`Object.create` 定义的属性都会被放在 `__proto__` 下面。
+
+对于 `vm.constructor.options` ，定义在
+
+`src\core\global-api\extend.js`
+
+```js
+Sub.options = mergeOptions(
+      Super.options,
+      extendOptions
+    )
+    Sub['super'] = Super
+```
+
+其他的都比较简单 ——
+
+```js
+export function initInternalComponent (vm: Component, options: InternalComponentOptions) {
+  const opts = vm.$options = Object.create(vm.constructor.options)
+  // doing this because it's faster than dynamic enumeration.
+  const parentVnode = options._parentVnode
+  opts.parent = options.parent
+  opts._parentVnode = parentVnode
+
+  const vnodeComponentOptions = parentVnode.componentOptions
+  opts.propsData = vnodeComponentOptions.propsData
+  opts._parentListeners = vnodeComponentOptions.listeners
+  opts._renderChildren = vnodeComponentOptions.children
+  opts._componentTag = vnodeComponentOptions.tag
+
+  if (options.render) {
+    opts.render = options.render
+    opts.staticRenderFns = options.staticRenderFns
+  }
+}
+```
+
+### 非组件初始化
 
 `src\core\instance\init.js`
 
