@@ -1,38 +1,40 @@
 import Vue from 'vue/dist/vue.esm.js'
-// import App from './App.vue'
+import App from './App.vue'
 
 Vue.config.productionTip = false
 
-let childComp = {
-  template: '<div>{{msg}}</div>',
-  created () {
-    console.log('child created')
-  },
-  mounted () {
-    console.log('child mounted')
-  },
-  data () {
-    return {
-      msg: 'Hello dilraba'
-    }
-  }
-}
+// let childComp = {
+//   template: '<div>{{msg}}</div>',
+//   created () {
+//     console.log('child created')
+//   },
+//   mounted () {
+//     console.log('child mounted')
+//   },
+//   data () {
+//     return {
+//       msg: 'Hello dilraba'
+//     }
+//   }
+// }
 
-Vue.mixin({
-  created () {
-    console.log('parent created')
-  }
-})
+// Vue.mixin({
+//   created () {
+//     console.log('parent created')
+//   }
+// })
+
+// new Vue ({
+//   el:'#app', 
+//   render: h => h(childComp)
+// })
 
 // 引入APP组件
-// new Vue({
-//   render: h => h(App),
-// }).$mount('#app')
+new Vue({
+  render: h => h(App),
+}).$mount('#app')
 
-new Vue ({
-  el:'#app', 
-  render: h => h(childComp)
-})
+
 
 // new Vue({
 //   el:'#app',

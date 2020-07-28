@@ -408,6 +408,8 @@ const Sub = function VueComponent (options) {
 
 inti是构造函数，因为上面实例化构造器触发的。
 
+#### initMixin
+
 `src\core\instance\init.js`
 
 ```js
@@ -421,8 +423,6 @@ if (options && options._isComponent) {
 ```
 
 `initInternalComponent` 定义在 `src\core\instance\init.js` ，作用是合并一些配置项。
-
-#### initInternalComponent 
 
  `src\core\instance\init.js` 
 
@@ -449,16 +449,32 @@ function initInternalComponent (vm, options) {
 
 这里所做的配置，最终都绑定在vm的$options上。主要是给vm.$options赋值。
 
-接着是 `initLifecycle(vm)`
+回到 `initMixin`
+
+`src\core\instance\init.js`
+
+```js
+export function initMixin (Vue: Class<Component>) {
+  Vue.prototype._init = function (options?: Object) {
+    const vm: Component = this
+    // a uid
+    vm._uid = uid++
+
+    ......
+    vm._self = vm
+    initLifecycle(vm)
+    .....
+```
 
 #### initLifecycle(vm)
 
 ` src\core\instance\lifecycle.js `
 
-```
-var options = vm.$options;
-let parent = options.parent
-......
+```js
+export function initLifecycle (vm: Component) {
+	var options = vm.$options;
+	let parent = options.parent
+	......
 ```
 
 #### 解释
@@ -524,6 +540,17 @@ export function lifecycleMixin (Vue: Class<Component>) {
     const prevEl = vm.$el
     const prevVnode = vm._vnode
     const restoreActiveInstance = setActiveInstance(vm)
+    vm._vnode = vnode
+    // Vue.prototype.__patch__ is injected in entry points
+    // based on the rendering backend used.
+    if (!prevVnode) {
+      // initial render
+      vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */)
+    } else {
+      // updates
+      vm.$el = vm.__patch__(prevVnode, vnode)
+    }
+    restoreActiveInstance()
     ......
 ```
 
@@ -542,6 +569,8 @@ export function setActiveInstance(vm: Component) {
 ```
 
 简要概括，1.把当前vue实例赋值给 `activeInstance` 2. 把父组件赋值给 `prevActiveInstance`
+
+最后返回的是一个函数。
 
 ————————————————————分割线————————————————————
 
@@ -655,6 +684,8 @@ Vue.prototype._render = function (): VNode {
     ......
 ```
 
+### $vnode(占位符VNode)
+
 上面的 `$vnode` 是一个占位符节点，其实也就是组件App的子组件HelloWorld的占位符。
 
 部分属性如下，
@@ -707,7 +738,8 @@ _update的定义在
 
 `src\core\instance\lifecycle.js`
 
-```
+```JS
+export function lifecycleMixin (Vue: Class<Component>) {
 Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
     const vm: Component = this
     const prevEl = vm.$el
@@ -719,6 +751,8 @@ Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
       vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */);
     } .......
 ```
+
+### _vnode(当前组件的渲染VNode)
 
 也就是说，这里的 `_vnode` 是刚刚在`vm._render()` 生成的渲染VNode。
 
@@ -776,13 +810,15 @@ if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
 
 `node_modules\vue\src\core\vdom\patch.js`
 
-```
+```js
 function createComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
     let i = vnode.data
     if (isDef(i)) {
       .......
       if (isDef(vnode.componentInstance)) {
         initComponent(vnode, insertedVnodeQueue)
+        insert(parentElm, vnode.elm, refElm)
+        ......
         }
      }
 ```
