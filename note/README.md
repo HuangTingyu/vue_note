@@ -13,3 +13,5 @@
 `mergeConfig.md` —— 配置合并
 
 `LifeCycle.md` —— 简要介绍生命周期
+
+`registerComponent.md` —— 组件注册
