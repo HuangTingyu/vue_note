@@ -8,9 +8,25 @@
 
 局部注册组件只能在当前组件中使用，因为它的扩展是扩展在 `Sub.options`
 
-全局注册是扩展到 `Vue.options`
+全局注册是扩展到 `Vue.options` ，在所有组件中都能使用。
+
+组件库中的基础组件建议全局注册。
 
 ### 详细分析
+
+`main.js`
+
+```js
+import App from './App.vue'
+
+Vue.config.productionTip = false
+
+Vue.component('app', App)
+new Vue ({
+  el: '#app',
+  template: '<app></app>'
+})
+```
 
 ### 全局注册
 
@@ -80,6 +96,48 @@ Vue.options["components"][id] = definition
 
 这里配的 `Vue.options["components"][id] = definition`, 最终会被应用到下面
 
+#### 举例
+
+全局注册 `app` 组件的情况下
+
+`main.js`
+
+```js
+Vue.component('app', App)
+```
+
+传入的 `definition` 如下所示，传入的 `id` 是 `app`
+
+```
+{name: "app"
+components: {HelloWorld: {…}}
+mounted: ƒ mounted()
+data: ƒ data()
+render: ƒ ()
+staticRenderFns: []
+_compiled: true
+beforeCreate: [ƒ]
+beforeDestroy: [ƒ]
+__file: "src/App.vue"
+__proto__: Object
+}
+```
+
+最后给 `Vue.options` 赋值，可以看到 `Vue.options` 下新增了 `components` 属性，结构如下所示
+
+```
+options:{
+	components:{
+		KeepAlive: {name: "keep-alive", abstract: true, props: {…}, created: ƒ, destroyed: ƒ, …}
+		Transition: {name: "transition", props: {…}, abstract: true, render: ƒ}
+		TransitionGroup: {props: {…}, methods: {…}, beforeMount: ƒ, render: ƒ, updated: ƒ}
+		app: ƒ VueComponent(options)
+	}
+}
+```
+
+(完)
+
 #### `_createElement`
 
 `src\core\vdom\create-element.js`
@@ -131,6 +189,65 @@ config.isReservedTag(tag)
 ```
 vnode = createComponent(Ctor, data, context, children, tag)
 ```
+
+调用 `createComponent` 以后，会进入
+
+`node_modules\vue\src\core\instance\init.js`
+
+```js
+export function initMixin (Vue: Class<Component>) {
+	if (options && options._isComponent) {
+      ......
+    } else {
+      vm.$options = mergeOptions(
+        resolveConstructorOptions(vm.constructor),
+        options || {},
+        vm
+      )
+    }
+```
+
+具体的合并过程见，
+
+`src\core\util\options.js`
+
+```js
+function mergeAssets (
+  parentVal: ?Object,
+  childVal: ?Object,
+  vm?: Component,
+  key: string
+): Object {
+  const res = Object.create(parentVal || null)
+  if (childVal) {
+    process.env.NODE_ENV !== 'production' && assertObjectType(key, childVal, vm)
+    return extend(res, childVal)
+  } else {
+    return res
+  }
+}
+```
+
+赋值后的 `vm.$options` 结构如下
+
+```
+components:{
+	__proto__:{
+		KeepAlive: {name: "keep-alive", abstract: true, props: {…}, created: ƒ, destroyed: ƒ, …},
+		Transition: {name: "transition", props: {…}, abstract: true, render: ƒ},
+		TransitionGroup: {props: {…}, methods: {…}, beforeMount: ƒ, render: ƒ, updated: ƒ},
+		app: ƒ VueComponent(options)
+	}
+},
+directives: {},
+filters: {},
+_base: ƒ Vue(options),
+el: "#app",
+template: "<app></app>",
+__proto__: Object,
+```
+
+（然后，后面就是 `createComponent` 的逻辑了）
 
 #### `resolveAsset` 
 
@@ -266,6 +383,57 @@ const opts = vm.$options = Object.create(vm.constructor.options)
 ```
 
 被赋值给 `Vue.$options` 。
+
+这里的 `vm.constructor.options` 
+
+```js
+{
+	components: {
+		HelloWorld:
+		{
+			name: "HelloWorld",
+			props: {msg: ƒ},
+			render: ƒ (),
+			staticRenderFns: (4) [ƒ, ƒ, ƒ, ƒ],
+			_compiled: true,
+			_scopeId: "data-v-469af010",
+			beforeCreate: [ƒ],
+			beforeDestroy: [ƒ],
+			__file: "src/components/HelloWorld.vue",
+			__proto__: Object,
+		}
+		app: ƒ VueComponent(options)
+	},
+	directives: {},
+	filters: {},
+	_base: ƒ Vue(options),
+	name: "app",
+	mounted: [ƒ],
+	data: ƒ data(),
+	render: ƒ (),
+	staticRenderFns: [],
+	_compiled: true,
+	beforeCreate: [ƒ],
+	beforeDestroy: [ƒ],
+	__file: "src/App.vue",
+	_Ctor: {0: ƒ},
+	__proto__: Object
+}
+```
+
+`components` 里面的 `app` 是通过
+
+`node_modules\vue\src\core\global-api\extend.js`
+
+```
+Vue.extend = function (extendOptions: Object): Function {
+    ......
+    if (name) {
+      Sub.options.components[name] = Sub
+    }
+```
+
+如果有个 `name` 属性，那么会在自身的 `components` 上面添加自己。
 
 最后，被 `src\core\util\options.js`  `resolveAsset` 返回到 `_createElement`
 
