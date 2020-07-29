@@ -19,7 +19,7 @@ export default {
   },
   data:function() {
     return {
-      message:'bacra'
+      message:'dilraba'
     };
   }
 }
