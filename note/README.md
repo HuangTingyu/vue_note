@@ -15,3 +15,5 @@
 `LifeCycle.md` —— 简要介绍生命周期
 
 `registerComponent.md` —— 组件注册
+
+`asyncComponent.md` —— 异步组件
