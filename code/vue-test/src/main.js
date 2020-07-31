@@ -3,11 +3,20 @@ import App from './App.vue'
 
 Vue.config.productionTip = false
 
-Vue.component('app', App)
-new Vue ({
-  el: '#app',
-  template: '<app></app>'
+Vue.component('HelloWorld', function (resolve, reject){
+  require(['./components/HelloWorld'], function (res){
+    resolve(res)
+  })
 })
+
+new Vue({
+  render: h => h(App),
+}).$mount('#app')
+// Vue.component('app', App)
+// new Vue ({
+//   el: '#app',
+//   template: '<app></app>'
+// })
 // let childComp = {
 //   template: '<div>{{msg}}</div>',
 //   created () {
