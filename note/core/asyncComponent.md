@@ -126,5 +126,18 @@ export function once (fn: Function): Function {
 
 `src\core\vdom\helpers\resolve-async-component.js`
 
-
+```js
+export function createAsyncPlaceholder (
+  factory: Function,
+  data: ?VNodeData,
+  context: Component,
+  children: ?Array<VNode>,
+  tag: ?string
+): VNode {
+  const node = createEmptyVNode()
+  node.asyncFactory = factory
+  node.asyncMeta = { data, context, children, tag }
+  return node
+}
+```
 
