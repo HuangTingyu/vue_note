@@ -41,8 +41,6 @@ ASSET_TYPES.forEach(type => {
         return definition
 ```
 
-
-
 `src\core\vdom\create-component.js`
 
 ```js
@@ -130,9 +128,7 @@ function ensureCtor (comp: any, base) {
 }
 ```
 
-如果 `comp` 是一个 es 模块，或者通过 `commonJS`  包装的模块，那么返回 `comp.default` 。
-
-如果 `comp` 是一个对象，那么直接返回 `comp` 。
+无论 `comp` 是一个 es 模块，或者通过 `commonJS`  包装的模块，都会被转为一个对象，最终返回构造器。
 
 #### `part2` 
 
