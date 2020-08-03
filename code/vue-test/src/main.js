@@ -3,7 +3,7 @@ import App from './App.vue'
 
 Vue.config.productionTip = false
 
-Vue.component('HelloWorld', function (resolve, reject){
+Vue.component('HelloWorld', function (resolve){
   require(['./components/HelloWorld'], function (res){
     resolve(res)
   })

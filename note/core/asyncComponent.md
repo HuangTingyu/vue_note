@@ -8,9 +8,12 @@
 `main.js`
 
 ```js
-Vue.component('HelloWorld', function (resolve, reject){
-  // require 语法告诉 webpack
-  // 自动将编译后的代码分割成不同的块
+import Vue from 'vue/dist/vue.esm.js'
+import App from './App.vue'
+
+Vue.config.productionTip = false
+
+Vue.component('HelloWorld', function (resolve){
   require(['./components/HelloWorld'], function (res){
     resolve(res)
   })
@@ -21,7 +24,7 @@ new Vue({
 }).$mount('#app')
 ```
 
-异步组件和普通组件的不同，普通组件第二个参数传入的是对象，异步组件是传入一个函数。
+异步组件和普通组件的不同，普通组件第二个参数传入的是对象，异步组件是传入一个函数。这里使用的是全局注册，记得把 `App.vue` 中局部注册相关的代码删掉。
 
 ## 详细分析
 
