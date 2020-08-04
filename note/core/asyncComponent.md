@@ -3,6 +3,10 @@
 1. 了解异步组件的实现原理
 2. 了解异步组件的3种实现方式
 
+## 简要概括
+
+1. 异步组件会和引入的文件分开打包，减少文件体积，加速首屏打包速度
+
 ## 使用
 
 `main.js`
@@ -213,3 +217,61 @@ export function resolveAsyncComponent (
 此时 `factory.resolved` 已经存在，所以直接返回。
 
 拿到 `Ctor` 以后，后面的逻辑跟同步组件的执行逻辑一致。
+
+### 高级异步组件
+
+`main.js`
+
+```js
+import Vue from 'vue/dist/vue.esm.js'
+import App from './App.vue'
+import './components/HelloWorld'
+Vue.config.productionTip = false
+
+const LoadingComponent = {
+  template: '<div>Loding</div>'
+}
+const ErrorComponent = {
+  template: '<div>Error</div>'
+} 
+const AsyncComponent = () => ({
+  // 需要加载的组件 (应该是一个 `Promise` 对象)
+  component: import('./components/HelloWorld'),
+  // 异步组件加载时使用的组件
+  loading: LoadingComponent,
+  // 加载失败时使用的组件
+  error: ErrorComponent,
+  // 展示加载时组件的延时时间。默认值是 200 (毫秒)
+  delay: 200,
+  // 如果提供了超时时间且组件加载也超时了，
+  // 则使用加载失败时使用的组件。默认值是：`Infinity`
+  timeout: 3000
+})
+
+Vue.component('HelloWorld', AsyncComponent)
+```
+
+解决错误 —— 错误 `SyntaxError: Unexpected token import`
+
+1. 安装 `@babel/plugin-syntax-dynamic-import`
+2. `babel.config.js`
+
+```js
+module.exports = {
+  presets: [
+    '@vue/cli-plugin-babel/preset'
+  ],
+  plugins: [
+    "@babel/plugin-syntax-dynamic-import"
+  ]
+}
+
+```
+
+3. `.eslintrc.js`
+
+```
+module.exports = {
+    "parser": "babel-eslint",
+```
+

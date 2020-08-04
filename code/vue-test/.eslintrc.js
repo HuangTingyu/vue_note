@@ -14,6 +14,7 @@ module.exports = {
     // "plugins": [
     //     'html'
     // ],
+    "parser": "babel-eslint",
     // 设置解析器选项（必须设置这个属性）
     "parserOptions": {
         "ecmaVersion": 7,
