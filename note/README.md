@@ -17,3 +17,9 @@
 `registerComponent.md` —— 组件注册
 
 `asyncComponent.md` —— 异步组件
+
+### responsive目录
+
+`README.md` —— 响应式原理简要分析
+
+`responsiveObj.md` —— 响应式对象

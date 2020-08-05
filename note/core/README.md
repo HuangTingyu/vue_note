@@ -197,7 +197,7 @@ new Vue({
 
 ```html
 <div id="app1">
-	｛｛message｝｝
+	{{message}}
 </div>
 ```
 
