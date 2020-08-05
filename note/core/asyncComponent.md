@@ -6,6 +6,8 @@
 ## 简要概括
 
 1. 异步组件会和引入的文件分开打包，减少文件体积，加速首屏打包速度
+2. 异步组件实现的本质是2次渲染，先渲染成注释节点，当组件加载成功后，再通过`forceRender`重新渲染。
+3. 高级异步组件可以通过配置，实现 `loading` , `resolve` , `reject`, `timeout` 4种状态。
 
 ## 使用
 
@@ -275,3 +277,120 @@ module.exports = {
     "parser": "babel-eslint",
 ```
 
+### 详细分析
+
+`src\core\vdom\helpers\resolve-async-component.js`
+
+```js
+export function resolveAsyncComponent (
+  factory: Function,
+  baseCtor: Class<Component>
+): Class<Component> | void {
+	......
+	else if (isPromise(res.component)) {
+        res.component.then(resolve, reject)
+
+        if (isDef(res.error)) {
+          factory.errorComp = ensureCtor(res.error, baseCtor)
+        }
+
+        if (isDef(res.loading)) {
+          factory.loadingComp = ensureCtor(res.loading, baseCtor)
+           if (res.delay === 0) {
+            factory.loading = true
+          } else {
+            timerLoading = setTimeout(() => {
+              timerLoading = null
+              if (isUndef(factory.resolved) && isUndef(factory.error)) {
+                factory.loading = true
+                forceRender(false)
+              }
+            }, res.delay || 200)
+          }
+        }
+        if (isDef(res.timeout)) {
+          timerTimeout = setTimeout(() => {
+            timerTimeout = null
+            if (isUndef(factory.resolved)) {
+              reject(
+                process.env.NODE_ENV !== 'production'
+                  ? `timeout (${res.timeout}ms)`
+                  : null
+              )
+            }
+          }, res.timeout)
+            .....
+```
+
+`resolveAsyncComponent` 检查有没有定义 `errorComp` 组件或者 `loadingComp` 组件，有就通过构造器返回组件构造器。
+
+如果 `delay` 为 0，那么 `factory.loading = true` ,组件最终将返回 `loadingComp`
+
+```
+......
+return factory.loading
+      ? factory.loadingComp
+      : factory.resolved
+```
+
+如果 `delay` 不为0，进入计时器。
+
+```js
+......
+timerLoading = setTimeout(() => {
+              timerLoading = null
+              if (isUndef(factory.resolved) && isUndef(factory.error)) {
+                factory.loading = true
+                forceRender(false)
+              }
+            }, res.delay || 200)
+```
+
+如果此时 `resolve` 组件或者 `error` 组件还没加载好，也就是 `undefined` , 那么 `factory.loading = true` ，渲染 `loadering` 组件。
+
+如果过了 `timeout` 还没有返回 `resolve` 组件，
+
+```js
+if (isDef(res.timeout)) {
+          timerTimeout = setTimeout(() => {
+            timerTimeout = null
+            if (isUndef(factory.resolved)) {
+              reject(
+                process.env.NODE_ENV !== 'production'
+                  ? `timeout (${res.timeout}ms)`
+                  : null
+              )
+            }
+          }, res.timeout)
+```
+
+`reject` 的定义
+
+```js
+const reject = once(reason => {
+      process.env.NODE_ENV !== 'production' && warn(
+        `Failed to resolve async component: ${String(factory)}` +
+        (reason ? `\nReason: ${reason}` : '')
+      )
+      if (isDef(factory.errorComp)) {
+        factory.error = true
+        forceRender(true)
+      }
+    })
+```
+
+如果过了 `timeout` 还没有返回 `resolve` 组件，如果定义了`errorComp` ,那么触发 `forceRender` 重新回到
+
+`src\core\vdom\helpers\resolve-async-component.js`
+
+```
+export function resolveAsyncComponent (
+  factory: Function,
+  baseCtor: Class<Component>
+): Class<Component> | void {
+  if (isTrue(factory.error) && isDef(factory.errorComp)) {
+    return factory.errorComp
+  }
+```
+
+最终返回 `errorComp` 组件，以及报错信息。
