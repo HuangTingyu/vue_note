@@ -106,6 +106,12 @@ function initData (vm: Component) {
 `proxy` 定义，
 
 ```js
+const sharedPropertyDefinition = {
+  enumerable: true,
+  configurable: true,
+  get: noop,
+  set: noop
+}
 export function proxy (target: Object, sourceKey: string, key: string) {
   sharedPropertyDefinition.get = function proxyGetter () {
     return this[sourceKey][key]
@@ -117,7 +123,7 @@ export function proxy (target: Object, sourceKey: string, key: string) {
 }
 ```
 
-上面使用了 `proxy` 方法，把 `_data` 上的key代理到 `vm` 上面。
+上面使用了 `proxy` 方法，把 `vm._data` 上的key代理到 `vm` 上面。
 
 `observe` 定义在 `src\core\observer\index.js`
 
@@ -200,11 +206,22 @@ export class Observer {
     this.dep = new Dep()
     this.vmCount = 0
     def(value, '__ob__', this)
-    .....
+    if (Array.isArray(value)) {
+      if (hasProto) {
+        protoAugment(value, arrayMethods)
+      } else {
+        copyAugment(value, arrayMethods, arrayKeys)
+      }
+      this.observeArray(value)
+    } else {
+      this.walk(value)
+    }
   }
 ```
 
-`def` 方法定义在 
+#### `def` 方法
+
+定义在 
 
 `src\core\util\lang.js`
 
@@ -217,5 +234,108 @@ export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
     configurable: true
   })
 }
+```
+
+def 是对 `Object.defineProperty` 方法进行封装，此处的 `enumerable` 不传就是undefined，`!!undefined` 所以 `enumerable` 默认值是 false.
+
+这里 `def(value, '__ob__', this)` 就相当于
+
+```
+value.__ob__ = this
+```
+
+然后，判断如果 `value` 是数组，那么进入 `this.observeArray(value)` 
+
+这个方法，就是把数组里面每个元素变成 `Observer` 对象。
+
+`src\core\observer\index.js`
+
+```js
+ observeArray (items: Array<any>) {
+    for (let i = 0, l = items.length; i < l; i++) {
+      observe(items[i])
+    }
+  }
+```
+
+否则，`value` 是对象那么进入 `this.walk(value)`
+
+`src\core\observer\index.js`
+
+```js
+walk (obj: Object) {
+    const keys = Object.keys(obj)
+    for (let i = 0; i < keys.length; i++) {
+      defineReactive(obj, keys[i])
+    }
+  }
+```
+
+#### `defineReactive`
+
+五个参数，其中 `customSetter` 和 `shallow` 是可选的
+
+`src\core\observer\index.js`
+
+```js
+export function defineReactive (
+  obj: Object,
+  key: string,
+  val: any,
+  customSetter?: ?Function,
+  shallow?: boolean
+) {
+  const dep = new Dep()
+
+  const property = Object.getOwnPropertyDescriptor(obj, key)
+  if (property && property.configurable === false) {
+    return
+  }
+  ......
+```
+
+property —— 获取属性（obj[key]）的对应值，如果属性的 `configurable` 是false的话，那么直接返回，关于`Object.getOwnPropertyDescriptor` 可以获取到哪些属性，可以参考 Def 的定义
+
+```js
+  ......
+  // cater for pre-defined getter/setters
+  const getter = property && property.get
+  const setter = property && property.set
+  if ((!getter || setter) && arguments.length === 2) {
+    val = obj[key]
+  }
+```
+
+如果只定义了 `setter` 且只传入2个参数，就像上面 `walk` 中引用的 `defineReactive` 方法，
+
+```
+walk (obj: Object) {
+    const keys = Object.keys(obj)
+    for (let i = 0; i < keys.length; i++) {
+      defineReactive(obj, keys[i])
+```
+
+那么，val 就等于 `obj[key]` 
+
+```
+.......
+let childOb = !shallow && observe(val)
+```
+
+如果 `obj[key]` 属性值是一个对象，那么将其转为一个 `Observer` 对象
+
+最终，给 `obj[key]` 定义 `get` 和 `set` 方法，`get` 方法，访问 `obj[key]` 时触发， `set` 方法，定义 `obj[key]` 时触发 
+
+```
+Object.defineProperty(obj, key, {
+    enumerable: true,
+    configurable: true,
+    get: function reactiveGetter () {
+      ......
+    },
+    set: function reactiveSetter (newVal) {
+      ......
+    }
+  })
 ```
 
