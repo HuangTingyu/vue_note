@@ -5,7 +5,40 @@
 
 ### 简要分析
 
-简要分析
+1. 响应式对象
+
+   简单来说，对象只要拥有`getter` 和 `setter` 方法，就称之为响应式对象
+
+2. `Vue` 响应式对象创建过程，就是给props或者data赋上getter和setter方法
+
+### 测试用例
+
+`App.vue`
+
+```vue
+template>
+  <div id="app">
+    <img alt="Vue logo" src="./assets/logo.png">
+    <HelloWorld :msg="message"/>
+  </div>
+</template>
+
+<script>
+import HelloWorld from './components/HelloWorld.vue'
+
+export default {
+  name: 'app',
+  components: {
+    HelloWorld
+  },
+  data:function() {
+    return {
+      message:'dilraba'
+    };
+  }
+}
+</script>
+```
 
 ### 详细分析
 
@@ -191,6 +224,12 @@ export function toggleObserving (value: boolean) {
 ob = new Observer(value)
 ```
 
+到此为止，value是一个对象，对象结构如下
+
+```js
+{ message: 'dilraba' }
+```
+
 ####  `Observer` 对象
 
 `src\core\observer\index.js`
@@ -242,6 +281,21 @@ def 是对 `Object.defineProperty` 方法进行封装，此处的 `enumerable` �
 
 ```
 value.__ob__ = this
+```
+
+此时 `value` 结构
+
+```
+value:{
+	message: "dilraba"
+	__ob__: {
+		value: {
+			message: "dilraba", __ob__: Observer
+		dep: {
+			id: 5
+			subs: []
+		vmCount: 0
+	}
 ```
 
 然后，判断如果 `value` 是数组，那么进入 `this.observeArray(value)` 
@@ -308,7 +362,7 @@ property —— 获取属性（obj[key]）的对应值，如果属性的 `config
 
 如果只定义了 `setter` 且只传入2个参数，就像上面 `walk` 中引用的 `defineReactive` 方法，
 
-```
+```js
 walk (obj: Object) {
     const keys = Object.keys(obj)
     for (let i = 0; i < keys.length; i++) {
@@ -326,7 +380,7 @@ let childOb = !shallow && observe(val)
 
 最终，给 `obj[key]` 定义 `get` 和 `set` 方法，`get` 方法，访问 `obj[key]` 时触发， `set` 方法，定义 `obj[key]` 时触发 
 
-```
+```js
 Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
