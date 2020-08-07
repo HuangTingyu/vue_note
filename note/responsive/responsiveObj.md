@@ -393,3 +393,218 @@ Object.defineProperty(obj, key, {
   })
 ```
 
+## 依赖收集
+
+1. 了解什么是依赖收集
+2. 了解依赖收集的流程及目的
+
+### 简要分析
+
+简要分析
+
+### 详细分析
+
+#### 渲染watcher
+
+`src\core\observer\watcher.js`
+
+```js
+export function mountComponent (
+  vm: Component,
+  el: ?Element,
+  hydrating?: boolean
+): Component {
+......
+if(...){
+   .....
+   }
+else {
+    updateComponent = () => {
+      vm._update(vm._render(), hydrating)
+    }
+}
+new Watcher(vm, updateComponent, noop, {
+    before () {
+      if (vm._isMounted && !vm._isDestroyed) {
+        callHook(vm, 'beforeUpdate')
+      }
+    }
+  }, true /* isRenderWatcher */)
+  hydrating = false
+```
+
+此处的实例化的 `watcher` 对象定义在 
+
+`src\core\observer\watcher.js`
+
+```js
+export default class Watcher {
+  vm: Component;
+  expression: string;
+  .....
+constructor (
+    vm: Component,
+    expOrFn: string | Function,
+    cb: Function,
+    options?: ?Object,
+    isRenderWatcher?: boolean
+) {
+	if (typeof expOrFn === 'function') {
+      this.getter = expOrFn
+    } else {
+      ......
+    }
+this.value = this.lazy? undefined : this.get()
+```
+
+此处传入的 `updateComponent` 是一个函数，
+
+然后，执行 `this.get()` 
+
+```js
+get () {
+    pushTarget(this)
+    	......
+    }
+```
+
+`pushTarget` 方法定义在
+
+`src\core\observer\watcher.js`
+
+```js
+const targetStack = []
+export function pushTarget (target: ?Watcher) {
+  targetStack.push(target)
+  Dep.target = target
+}
+```
+
+这里的 `pushTarget` 方法，把上面传入的 `this` ，也就是 `watcher` 对象赋值给 `Dep.target` ,
+
+如果 `Dep.target` 已经存在，那么会把已存在的 `Dep.target` 推到 `targetStack` 中，再赋值。
+
+- 设计这个过程的原因
+
+可以联系到父子组件的创建，首先会先执行父组件的 `mount` 过程，那么执行字组件 `mount` 过程时，就会把父组件先 暂存到 `targetStack` 中。
+
+接着,
+
+```js
+get () {
+	.....
+	let value
+    const vm = this.vm
+    try {
+      value = this.getter.call(vm, vm)
+    } catch (e) {
+    .....
+```
+
+执行 `value = this.getter.call(vm, vm)`
+
+就是执行 `vm._render()`
+
+`src\core\instance\lifecycle.js`
+
+```
+vm._update(vm._render(), hydrating)
+```
+
+`render` 函数定义在 `src\core\instance\render.js`
+
+```
+  Vue.prototype._render = function (): VNode {
+  ......
+  try {
+      // There's no need to maintain a stack becaues all render fns are called
+      // separately from one another. Nested component's render fns are called
+      // when parent component is patched.
+      currentRenderingInstance = vm
+      vnode = render.call(vm._renderProxy, vm.$createElement)
+    } 
+```
+
+这里的 `render.call(vm._renderProxy, vm.$createElement)` 会触发
+
+`src\core\observer\index.js` 中的 `get` 方法
+
+```js
+Object.defineProperty(obj, key, {
+    enumerable: true,
+    configurable: true,
+    get: function reactiveGetter () {
+      const value = getter ? getter.call(obj) : val
+      if (Dep.target) {
+        dep.depend()
+        .....
+```
+
+#### `Dep` 对象
+
+关于 `Dep` 对象，定义在 `src\core\observer\dep.js` ，主要作用，搭建属性和 `Watcher` 对象的联系。
+
+这里的 `Dep.target` 是一个 `watcher` 对象，如果 `Dep.target` 存在，那么 `dep.depend()`
+
+```js
+export default class Dep {
+  static target: ?Watcher;
+  id: number;
+  subs: Array<Watcher>;
+
+  constructor () {
+    this.id = uid++
+    this.subs = []
+  }
+
+  addSub (sub: Watcher) {
+    this.subs.push(sub)
+  }
+
+  removeSub (sub: Watcher) {
+    remove(this.subs, sub)
+  }
+
+  depend () {
+    if (Dep.target) {
+      Dep.target.addDep(this)
+    }
+  }
+```
+
+`dep.depend()`  调用的 `Dep.target.addDep(this)` 定义在
+
+`src\core\observer\watcher.js`
+
+```js
+addDep (dep: Dep) {
+    const id = dep.id
+    if (!this.newDepIds.has(id)) {
+      ......
+      if (!this.depIds.has(id)) {
+        dep.addSub(this)
+      }
+    }
+  }
+```
+
+这里的 `newDepIds` 和 `depIds` 是定义在 `src\core\observer\watcher.js` `watcher` 对象中的
+
+如果这两个数组中都找不到 `dep.id` ，那么就会触发 `src\core\observer\dep.js` 的 `addSub`
+
+```js
+export default class Dep {
+  static target: ?Watcher;
+  id: number;
+  subs: Array<Watcher>;
+
+  constructor () {
+    this.id = uid++
+    this.subs = []
+  }
+addSub (sub: Watcher) {
+    this.subs.push(sub)
+  }
+```
+
+这个 `watcher` 最终被推到 `subs` 里面，也就成了这个数据的订阅者。
