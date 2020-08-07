@@ -608,3 +608,60 @@ addSub (sub: Watcher) {
 ```
 
 这个 `watcher` 最终被推到 `subs` 里面，也就成了这个数据的订阅者。
+
+#### 渲染watcher
+
+####  `part2` 
+
+重新回到上面的渲染 `Watcher` 的 `get` 方法
+
+```
+try {
+      value = this.getter.call(vm, vm)
+    } catch (e) {
+      ......
+    } finally {
+      // "touch" every property so they are all tracked as
+      // dependencies for deep watching
+      if (this.deep) {
+        traverse(value)
+      }
+      popTarget()
+      this.cleanupDeps()
+```
+
+`popTarget` 定义 `src\core\observer\dep.js`
+
+```js
+export function popTarget () {
+  targetStack.pop()
+  Dep.target = targetStack[targetStack.length - 1]
+}
+```
+
+重新从 `targetStack` 取出旧的target
+
+然后 ，执行 `cleanupDeps` , 清除 `addDep` 刚刚添加的依赖。
+
+`src\core\observer\watcher.js`
+
+```js
+cleanupDeps () {
+    let i = this.deps.length
+    while (i--) {
+      const dep = this.deps[i]
+      if (!this.newDepIds.has(dep.id)) {
+        dep.removeSub(this)
+      }
+    }
+    let tmp = this.depIds
+    this.depIds = this.newDepIds
+    this.newDepIds = tmp
+    this.newDepIds.clear()
+    tmp = this.deps
+    this.deps = this.newDeps
+    this.newDeps = tmp
+    this.newDeps.length = 0
+  }
+```
+
